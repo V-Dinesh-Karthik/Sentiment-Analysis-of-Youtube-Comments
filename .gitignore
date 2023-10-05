@@ -1,3 +1,4 @@
 .vscode/
 /Backend/venv
 /Backend/app/__pycache__
+/Frontend/Anlyze/node_modules
