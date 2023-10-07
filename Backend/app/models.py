@@ -62,3 +62,7 @@ class CurrentUser(BaseModel):
 
 class LinkBody(BaseModel):
     url: str = Field(...)
+
+
+class AnalyzeBody(BaseModel):
+    data: dict = Field(...)

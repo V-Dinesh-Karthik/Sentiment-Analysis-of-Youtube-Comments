@@ -1,12 +1,17 @@
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
-# from fastapi.encoders import jsonable_encoder
-from models import LinkBody
+from models import LinkBody, AnalyzeBody
 from googleapiclient.discovery import build
+from transformers import pipeline
 
 router = APIRouter()
 
 api_key = "AIzaSyDlGOT7DXeeGRSKZgfAcTzwa-pFhKpc30E"
+
+sentiment_analyzer = pipeline(
+    "text-classification",
+    model="j-hartmann/sentiment-roberta-large-english-3-classes"
+)
 
 
 @router.post("/scrap")
@@ -59,15 +64,58 @@ async def scrap_comments(link: LinkBody):
         else:
             break
 
+    jsonFormat = []
+
+    for index, commentDict in enumerate(comments):
+        comment = list(commentDict.keys())[0]
+        comment_id = str(index+1)
+
+        sentiment = None
+
+        conf_score = None
+
+        is_reply = bool(commentDict[comment])
+
+        comment_data = {
+            "id": comment_id,
+            "comment": comment,
+            "sentiment": sentiment,
+            "conf_score": conf_score,
+            "isReply": is_reply
+        }
+
+        jsonFormat.append(comment_data)
+
+        if is_reply:
+            for replyC in commentDict[comment]:
+                comment_id += "_reply"
+                comment_data = {
+                    "id": comment_id,
+                    "comment": replyC,
+                    "sentiment": sentiment,
+                    "conf_score": conf_score,
+                    "isReply": True,
+                }
+                jsonFormat.append(comment_data)
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={
-            "comments": comments,
-            "no. of comments": len(comments)+reply_count,
-        }
+        content={"data": jsonFormat}
     )
 
 
-@router.get("/analyze")
-async def analyze():
-    pass
+@router.post("/analyze")
+async def analyze(data: AnalyzeBody):
+    _data = data.data
+
+    for item in _data:
+        comment = item["comment"]
+        sentiment_result = sentiment_analyzer(comment)
+        sentiment_label = sentiment_result[0]["label"]
+        conf_score = sentiment_result[0]["score"]
+        item["sentiment"] = sentiment_label
+        item[conf_score] = conf_score
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK, content={"data": _data}
+    )
