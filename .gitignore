@@ -3,3 +3,4 @@
 /Backend/app/__pycache__
 /Frontend/Anlyze/node_modules
 /Backend/app/routers/__pycache__
+/Backend/app/cache

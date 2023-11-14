@@ -20,6 +20,8 @@ app.add_middleware(
 )
 
 
+
+
 @app.on_event("startup")
 async def startup_db_client():
     app.mongodb_client = AsyncIOMotorClient(DB_URL)

@@ -1,21 +1,25 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 from models import LinkBody, AnalyzeBody
 from googleapiclient.discovery import build
-from transformers import pipeline
+from auth import Authorization
+import os
+
+os.environ["TRANSFORMERS_CACHE"] = "D:\\SentimentAnlysis\\Backend\\app\\cache"
+from transformers import pipeline   # noqa
 
 router = APIRouter()
 
+auth_handler = Authorization()
+
 api_key = "AIzaSyDlGOT7DXeeGRSKZgfAcTzwa-pFhKpc30E"
 
-sentiment_analyzer = pipeline(
-    "text-classification",
-    model="j-hartmann/sentiment-roberta-large-english-3-classes"
-)
-
+sentiment_analyzer = pipeline(task='text-classification',model="j-hartmann/sentiment-roberta-large-english-3-classes")
 
 @router.post("/scrap")
-async def scrap_comments(link: LinkBody):
+async def scrap_comments(
+        link: LinkBody, userId=Depends(auth_handler.auth_wrapper)
+        ):
     comments = []
     reply_count = 0
 
@@ -68,7 +72,7 @@ async def scrap_comments(link: LinkBody):
 
     for index, commentDict in enumerate(comments):
         comment = list(commentDict.keys())[0]
-        comment_id = str(index+1)
+        comment_id = str(index + 1)
 
         sentiment = None
 
@@ -81,7 +85,7 @@ async def scrap_comments(link: LinkBody):
             "comment": comment,
             "sentiment": sentiment,
             "conf_score": conf_score,
-            "isReply": is_reply
+            "isReply": is_reply,
         }
 
         jsonFormat.append(comment_data)
@@ -99,13 +103,14 @@ async def scrap_comments(link: LinkBody):
                 jsonFormat.append(comment_data)
 
     return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"data": jsonFormat}
-    )
+        status_code=status.HTTP_200_OK, content={"data": jsonFormat}
+        )
 
 
 @router.post("/analyze")
-async def analyze(data: AnalyzeBody):
+async def analyze(data: AnalyzeBody,
+                  userId=Depends(auth_handler.auth_wrapper)
+                  ):
     _data = data.data
 
     for item in _data:
@@ -114,8 +119,10 @@ async def analyze(data: AnalyzeBody):
         sentiment_label = sentiment_result[0]["label"]
         conf_score = sentiment_result[0]["score"]
         item["sentiment"] = sentiment_label
-        item[conf_score] = conf_score
+        item["conf_score"] = format(conf_score, ".5f")
+
+    print(_data)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK, content={"data": _data}
-    )
+        )

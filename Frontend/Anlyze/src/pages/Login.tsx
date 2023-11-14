@@ -23,11 +23,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "@/components/ui/use-toast";
+import { Eye, EyeOff } from "lucide-react";
+import { useCookies } from "react-cookie";
 
 const Login = () => {
   const [apiError, setApiError] = useState<string | null>(null);
-  const { setAuth } = useAuth();
+  const { auth, setAuth } = useAuth();
   const navigate = useNavigate();
+  const [passVisibility, setPassVisibility] = useState(false);
+  const [cookies, setCookies] = useCookies();
+
+  const handlePassVisibility = () => {
+    setPassVisibility(!passVisibility);
+  };
 
   const formSchema = z.object({
     username: z.string().min(2),
@@ -88,8 +96,17 @@ const Login = () => {
           },
           isAuthenticated: true,
         });
+        setCookies("username", userData.username, { path: "/" });
+        setCookies("token", userData.token, { path: "/" });
+        setCookies("email", userData.email, { path: "/" });
+
         setApiError(null);
         navigate("/", { replace: true });
+      } else {
+        toast({
+          title: "Login Failed",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -100,6 +117,7 @@ const Login = () => {
   }
   //
   //absolute -translate-x-1/2 -translate-y-1/2 top-1/2
+  //flex justify-center items-center
   return (
     <div className="flex justify-center items-center h-screen">
       <Card className="w-[350px]">
@@ -129,13 +147,26 @@ const Login = () => {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input placeholder="password" {...field} />
+                      <Input
+                        placeholder="password"
+                        {...field}
+                        type={passVisibility ? "text" : "password"}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit">Log in</Button>
+              <div className="flex justify-between">
+                <Button type="submit">Login</Button>
+                <Button
+                  type="button"
+                  onClick={handlePassVisibility}
+                  variant={"ghost"}
+                >
+                  {passVisibility == false ? <EyeOff></EyeOff> : <Eye></Eye>}
+                </Button>
+              </div>
               <div className="flex items-center">
                 <div className="flex-grow border-t border-gray-300"></div>
                 <span className="mx-2">or</span>

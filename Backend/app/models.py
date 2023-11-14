@@ -1,12 +1,12 @@
-from bson import ObjectId
+# from bson import ObjectId
 # from typing import Annotated, Union
 from pydantic import EmailStr, Field, BaseModel, validator
 # from pydantic.functional_validators import AfterValidator
-
+import uuid
 # from pydantic_core import CoreSchema
 from email_validator import validate_email, EmailNotValidError
 
-
+'''
 class PyObjectId(ObjectId):
 
     @classmethod
@@ -19,20 +19,21 @@ class PyObjectId(ObjectId):
             raise ValueError("Invalid ObjectId")
         return ObjectId(v)
 
-    # @classmethod
-    # def __get_pydantic_json_schema__(cls):
-    #     return {"type": "string"}
+    @classmethod
+    def __get_pydantic_json_schema__(cls):
+        return {"type": "string"}
 
-    # @classmethod
-    # def __get_pydantic_json_schema__(cls, field_schema):
-    #     field_schema.update(type="string")
+    @classmethod
+    def __get_pydantic_json_schema__(cls, field_schema):
+       field_schema.update(type="string")
+'''
 
 
 class MongoBaseModel(BaseModel):
-    id: PyObjectId = Field(default_factory=ObjectId, alias="_id")
+    id: str = Field(default_factory=uuid.uuid4, alias="_id")
 
     class Config:
-        json_encoders = {ObjectId: str}
+        # json_encoders = {ObjectId: str}
         arbitrary_types_allowed = True
 
 
@@ -65,4 +66,4 @@ class LinkBody(BaseModel):
 
 
 class AnalyzeBody(BaseModel):
-    data: dict = Field(...)
+    data: list = Field(...)
